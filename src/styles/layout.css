@@ -1,0 +1,76 @@
+.app {
+	position: relative;
+	width: 100%;
+	height: 100vh;
+	overflow: hidden;
+}
+
+.map {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 20vw;
+}
+
+.geojson-shell {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	height: 100vh;
+	width: 20vw;
+	display: flex;
+	align-items: stretch;
+	gap: 0.5rem;
+	padding: 0;
+}
+
+.geojson-panel {
+	width: 100%;
+	padding: 0;
+	border-radius: 0;
+	border: none;
+	background: rgba(255, 255, 255, 0.9);
+	backdrop-filter: blur(10px);
+	box-shadow: 0 12px 28px rgba(29, 27, 22, 0.15);
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.geojson-editor {
+	width: 100%;
+	flex: 1;
+	min-height: 0;
+	border-radius: 0;
+	overflow: hidden;
+	border: none;
+	background: rgba(252, 250, 245, 0.95);
+}
+
+.geojson-error {
+	padding: 0 0.75rem 0.75rem;
+	font-size: 0.75rem;
+	color: #b44d3c;
+	letter-spacing: 0.02rem;
+}
+
+@media (max-width: 720px) {
+	.map {
+		right: 0;
+	}
+
+	.geojson-shell {
+		position: static;
+		height: auto;
+		width: auto;
+		padding: 0;
+		flex-direction: column;
+	}
+
+	.geojson-panel {
+		width: auto;
+		height: min(45vh, 22.5rem);
+	}
+}
