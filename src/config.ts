@@ -62,9 +62,12 @@ const toAppConfig = (base: RawAppConfig, override?: RawAppConfig): AppConfig => 
 export const loadAppConfig = async (): Promise<AppConfig> => {
 	let runtimeConfig: RawAppConfig | undefined;
 	try {
+		const baseUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
+		const defaultUrl = new URL('config/default.json', baseUrl).toString();
+		const localUrl = new URL('config/local.json', baseUrl).toString();
 		const [defaultResponse, localResponse] = await Promise.all([
-			fetch('/config/default.json', { cache: 'no-store' }),
-			fetch('/config/local.json', { cache: 'no-store' }),
+			fetch(defaultUrl, { cache: 'no-store' }),
+			fetch(localUrl, { cache: 'no-store' }),
 		]);
 		const runtimeDefault = defaultResponse.ok
 			? ((await defaultResponse.json()) as RawAppConfig)
