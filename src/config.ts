@@ -62,7 +62,10 @@ const toAppConfig = (base: RawAppConfig, override?: RawAppConfig): AppConfig => 
 export const loadAppConfig = async (): Promise<AppConfig> => {
 	let runtimeConfig: RawAppConfig | undefined;
 	try {
-		const baseUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
+		const basePath = import.meta.env.BASE_URL.endsWith('/')
+			? import.meta.env.BASE_URL
+			: `${import.meta.env.BASE_URL}/`;
+		const baseUrl = `${window.location.origin}${basePath}`;
 		const defaultUrl = new URL('config/default.json', baseUrl).toString();
 		const localUrl = new URL('config/local.json', baseUrl).toString();
 		const [defaultResponse, localResponse] = await Promise.all([
