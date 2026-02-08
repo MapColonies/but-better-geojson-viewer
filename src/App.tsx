@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import VectorSource from 'ol/source/Vector';
+import shp from 'shpjs';
 import ControlsPanel from './components/ControlsPanel';
 import DrawToolbar from './components/DrawToolbar';
 import GeoJsonPanel from './components/GeoJsonPanel';
@@ -23,6 +24,42 @@ type AppProps = {
 	config: AppConfig;
 };
 
+type GeoJsonObject = {
+	type?: string;
+	features?: unknown;
+	geometry?: unknown;
+};
+
+const normalizeToFeatureCollection = (input: unknown) => {
+	if (!input || typeof input !== 'object') return null;
+	const value = input as GeoJsonObject;
+	if (value.type === 'FeatureCollection' && Array.isArray(value.features)) {
+		return value;
+	}
+	if (value.type === 'Feature') {
+		return { type: 'FeatureCollection', features: [value] };
+	}
+	if (value.type && value.geometry === undefined && 'coordinates' in value) {
+		return {
+			type: 'FeatureCollection',
+			features: [{ type: 'Feature', properties: {}, geometry: value }],
+		};
+	}
+	return null;
+};
+
+const mergeFeatureCollections = (input: unknown) => {
+	const collections = Array.isArray(input)
+		? input.map((item) => normalizeToFeatureCollection(item)).filter(Boolean)
+		: [normalizeToFeatureCollection(input)].filter(Boolean);
+	if (collections.length === 0) return null;
+	const features = collections.flatMap((collection) =>
+		Array.isArray(collection?.features) ? collection.features : [],
+	);
+	if (features.length === 0) return null;
+	return { type: 'FeatureCollection', features };
+};
+
 function App({ config }: AppProps) {
 	const mapRef = useRef<HTMLDivElement | null>(null);
 	const vectorSource = useMemo(() => new VectorSource({ wrapX: false }), []);
@@ -31,6 +68,7 @@ function App({ config }: AppProps) {
 	const [hoveredFeatureKey, setHoveredFeatureKey] = useState<string | null>(
 		null,
 	);
+	const [uploadError, setUploadError] = useState('');
 	const preferredCrs = useMemo(
 		() => getPreferredCrs(config.mapProjection),
 		[config.mapProjection],
@@ -91,6 +129,16 @@ function App({ config }: AppProps) {
 		projection: config.mapProjection,
 	});
 
+	const handleEditorChangeWithClear = useCallback(
+		(value?: string, options?: { fit?: boolean }) => {
+			if (uploadError) {
+				setUploadError('');
+			}
+			handleEditorChange(value, options);
+		},
+		[handleEditorChange, uploadError],
+	);
+
 	useFeatureHoverHighlight({
 		mapRef: mapInstanceRef,
 		vectorSource,
@@ -101,20 +149,39 @@ function App({ config }: AppProps) {
 		async (file: File | null) => {
 			if (!file) return;
 			try {
+				setUploadError('');
+				const isZip =
+					file.name.toLowerCase().endsWith('.zip') ||
+					file.type === 'application/zip' ||
+					file.type === 'application/x-zip-compressed';
+				if (isZip) {
+					const buffer = await file.arrayBuffer();
+					const parsed = await shp(buffer);
+					const normalized = mergeFeatureCollections(parsed);
+					if (!normalized) {
+						setUploadError('No features found in shapefile.');
+						return;
+					}
+					const json = JSON.stringify(normalized, null, 2);
+					handleEditorChangeWithClear(json, { fit: true });
+					return;
+				}
 				const content = await file.text();
-				handleEditorChange(content, { fit: true });
+				handleEditorChangeWithClear(content, { fit: true });
 			} catch (error) {
-				console.error('Failed to read GeoJSON file', error);
+				const message =
+					error instanceof Error ? error.message : 'Unknown error';
+				setUploadError(`Failed to read file: ${message}`);
 			}
 		},
-		[handleEditorChange],
+		[handleEditorChangeWithClear],
 	);
 
 	const handleGeoJsonPaste = useCallback(
 		(value: string) => {
-			handleEditorChange(value, { fit: true });
+			handleEditorChangeWithClear(value, { fit: true });
 		},
-		[handleEditorChange],
+		[handleEditorChangeWithClear],
 	);
 
 	const handleZoom = (delta: number) => {
@@ -154,10 +221,10 @@ function App({ config }: AppProps) {
 			<DrawToolbar drawMode={drawType} onChange={setDrawType} />
 			<GeoJsonPanel
 				value={geoJson}
-				onChange={handleEditorChange}
+				onChange={handleEditorChangeWithClear}
 				onPaste={handleGeoJsonPaste}
 				onHoverFeatureKey={setHoveredFeatureKey}
-				error={geoJsonError}
+				error={uploadError || geoJsonError}
 			/>
 		</div>
 	);
