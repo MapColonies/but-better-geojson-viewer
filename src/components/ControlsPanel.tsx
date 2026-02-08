@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import GeoJsonExportControl from './controls/GeoJsonExportControl';
 import GeoJsonUploadControl from './controls/GeoJsonUploadControl';
 import LayerChecklist from './controls/LayerChecklist';
 import LayerSearchControl from './controls/LayerSearchControl';
@@ -13,6 +14,10 @@ type ControlsPanelProps = {
 	selectedLayers: string[];
 	onLayerChange: (layerIds: string[]) => void;
 	onGeoJsonUpload: (file: File | null) => void;
+	onGeoJsonExport: () => void | Promise<void>;
+	onShapefileExport: () => void | Promise<void>;
+	geoJsonExportDisabled: boolean;
+	geoJsonExportError?: string;
 	isTileDebugEnabled: boolean;
 	onToggleTileDebug: () => void;
 };
@@ -24,6 +29,10 @@ function ControlsPanel({
 	selectedLayers,
 	onLayerChange,
 	onGeoJsonUpload,
+	onGeoJsonExport,
+	onShapefileExport,
+	geoJsonExportDisabled,
+	geoJsonExportError,
 	isTileDebugEnabled,
 	onToggleTileDebug,
 }: ControlsPanelProps) {
@@ -77,6 +86,12 @@ function ControlsPanel({
 						disabled={isLayerListDisabled}
 					/>
 					<GeoJsonUploadControl onUpload={onGeoJsonUpload} />
+					<GeoJsonExportControl
+						onExportGeoJson={onGeoJsonExport}
+						onExportShapefile={onShapefileExport}
+						disabled={geoJsonExportDisabled}
+						error={geoJsonExportError}
+					/>
 					<DebugTileLayer
 						isTileDebugEnabled={isTileDebugEnabled}
 						onToggleTileDebug={onToggleTileDebug}

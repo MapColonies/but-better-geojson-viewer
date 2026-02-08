@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import VectorSource from 'ol/source/Vector';
 import shp from 'shpjs';
+import * as shpwrite from '@mapbox/shp-write';
 import ControlsPanel from './components/ControlsPanel';
 import DrawToolbar from './components/DrawToolbar';
 import GeoJsonPanel from './components/GeoJsonPanel';
@@ -28,6 +29,12 @@ type GeoJsonObject = {
 	type?: string;
 	features?: unknown;
 	geometry?: unknown;
+	properties?: unknown;
+};
+
+type FeatureCollection = {
+	type: 'FeatureCollection';
+	features: Array<Record<string, unknown>>;
 };
 
 const normalizeToFeatureCollection = (input: unknown) => {
@@ -60,6 +67,70 @@ const mergeFeatureCollections = (input: unknown) => {
 	return { type: 'FeatureCollection', features };
 };
 
+const ensureExportProperties = (collection: FeatureCollection): FeatureCollection => {
+	return {
+		...collection,
+		features: collection.features.map((feature) => {
+			if (!feature || feature.type !== 'Feature') return feature;
+			return {
+				...feature,
+				properties:
+					feature.properties === null || feature.properties === undefined
+						? {}
+						: feature.properties,
+			};
+		}),
+	};
+};
+
+const parseGeoJsonForExport = (source: string) => {
+	if (!source.trim()) {
+		return { error: 'GeoJSON is empty.' };
+	}
+	try {
+		const parsed = JSON.parse(source) as unknown;
+		const normalized = normalizeToFeatureCollection(parsed) as
+			| FeatureCollection
+			| null;
+		if (!normalized) {
+			return {
+				error: 'GeoJSON must be a FeatureCollection, Feature, or Geometry.',
+			};
+		}
+		if (!Array.isArray(normalized.features) || normalized.features.length === 0) {
+			return { error: 'GeoJSON has no features.' };
+		}
+		return { collection: ensureExportProperties(normalized) };
+	} catch (error) {
+		return { error: 'Invalid GeoJSON.' };
+	}
+};
+
+const triggerDownload = (blob: Blob, filename: string) => {
+	const url = URL.createObjectURL(blob);
+	const anchor = document.createElement('a');
+	anchor.href = url;
+	anchor.download = filename;
+	anchor.rel = 'noopener';
+	document.body.appendChild(anchor);
+	anchor.click();
+	anchor.remove();
+	URL.revokeObjectURL(url);
+};
+
+const getZipBlob = (data: unknown) => {
+	if (data instanceof Blob) {
+		return data;
+	}
+	if (data instanceof ArrayBuffer) {
+		return new Blob([data], { type: 'application/zip' });
+	}
+	if (ArrayBuffer.isView(data)) {
+		return new Blob([data], { type: 'application/zip' });
+	}
+	throw new Error('Unsupported shapefile export output.');
+};
+
 function App({ config }: AppProps) {
 	const mapRef = useRef<HTMLDivElement | null>(null);
 	const vectorSource = useMemo(() => new VectorSource({ wrapX: false }), []);
@@ -69,6 +140,7 @@ function App({ config }: AppProps) {
 		null,
 	);
 	const [uploadError, setUploadError] = useState('');
+	const [exportError, setExportError] = useState('');
 	const preferredCrs = useMemo(
 		() => getPreferredCrs(config.mapProjection),
 		[config.mapProjection],
@@ -129,14 +201,23 @@ function App({ config }: AppProps) {
 		projection: config.mapProjection,
 	});
 
+	useEffect(() => {
+		if (exportError) {
+			setExportError('');
+		}
+	}, [geoJson, exportError]);
+
 	const handleEditorChangeWithClear = useCallback(
 		(value?: string, options?: { fit?: boolean }) => {
 			if (uploadError) {
 				setUploadError('');
 			}
+			if (exportError) {
+				setExportError('');
+			}
 			handleEditorChange(value, options);
 		},
-		[handleEditorChange, uploadError],
+		[handleEditorChange, exportError, uploadError],
 	);
 
 	useFeatureHoverHighlight({
@@ -184,6 +265,42 @@ function App({ config }: AppProps) {
 		[handleEditorChangeWithClear],
 	);
 
+	const handleGeoJsonExport = useCallback(() => {
+		const parsed = parseGeoJsonForExport(geoJson);
+		if ('error' in parsed) {
+			setExportError(parsed.error);
+			return;
+		}
+		const blob = new Blob([geoJson], { type: 'application/geo+json' });
+		triggerDownload(blob, 'geojson-export.geojson');
+		if (exportError) {
+			setExportError('');
+		}
+	}, [exportError, geoJson]);
+
+	const handleShapefileExport = useCallback(async () => {
+		const parsed = parseGeoJsonForExport(geoJson);
+		if ('error' in parsed) {
+			setExportError(parsed.error);
+			return;
+		}
+		try {
+			const zipData = await shpwrite.zip(parsed.collection, {
+				compression: 'STORE',
+				outputType: 'blob',
+			});
+			const blob = getZipBlob(zipData);
+			triggerDownload(blob, 'shapefile-export.zip');
+			if (exportError) {
+				setExportError('');
+			}
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : 'Unknown error';
+			setExportError(`Failed to export shapefile: ${message}`);
+		}
+	}, [exportError, geoJson]);
+
 	const handleZoom = (delta: number) => {
 		const map = mapInstanceRef.current;
 		if (!map) return;
@@ -209,6 +326,10 @@ function App({ config }: AppProps) {
 				selectedLayers={selectedLayers}
 				onLayerChange={setSelectedLayers}
 				onGeoJsonUpload={handleGeoJsonUpload}
+				onGeoJsonExport={handleGeoJsonExport}
+				onShapefileExport={handleShapefileExport}
+				geoJsonExportDisabled={!geoJson.trim() || !!geoJsonError}
+				geoJsonExportError={exportError}
 				isTileDebugEnabled={isTileDebugEnabled}
 				onToggleTileDebug={() =>
 					setIsTileDebugEnabled((enabled) => !enabled)
