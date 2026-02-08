@@ -6,6 +6,8 @@ import LayerSearchControl from './controls/LayerSearchControl';
 import PanelToggle from './controls/PanelToggle';
 import type { LayerOption } from './controls/types';
 import DebugTileLayer from './controls/DebugTileLayer';
+import TileJumpControl from './controls/TileJumpControl';
+import type { TileJumpRequest } from './controls/TileJumpControl';
 
 type ControlsPanelProps = {
 	capabilitiesError: string;
@@ -20,6 +22,7 @@ type ControlsPanelProps = {
 	geoJsonExportError?: string;
 	isTileDebugEnabled: boolean;
 	onToggleTileDebug: () => void;
+	onTileJump: (request: TileJumpRequest) => string | null;
 };
 
 function ControlsPanel({
@@ -35,6 +38,7 @@ function ControlsPanel({
 	geoJsonExportError,
 	isTileDebugEnabled,
 	onToggleTileDebug,
+	onTileJump,
 }: ControlsPanelProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [layerQuery, setLayerQuery] = useState('');
@@ -92,6 +96,7 @@ function ControlsPanel({
 						disabled={geoJsonExportDisabled}
 						error={geoJsonExportError}
 					/>
+					<TileJumpControl onJumpToTile={onTileJump} />
 					<DebugTileLayer
 						isTileDebugEnabled={isTileDebugEnabled}
 						onToggleTileDebug={onToggleTileDebug}

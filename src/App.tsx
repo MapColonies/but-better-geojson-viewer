@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type Map from 'ol/Map';
+import TileLayer from 'ol/layer/Tile';
 import VectorSource from 'ol/source/Vector';
+import WMTS from 'ol/source/WMTS';
 import shp from 'shpjs';
 import * as shpwrite from '@mapbox/shp-write';
 import ControlsPanel from './components/ControlsPanel';
@@ -7,6 +10,7 @@ import DrawToolbar from './components/DrawToolbar';
 import GeoJsonPanel from './components/GeoJsonPanel';
 import MapCanvas from './components/MapCanvas';
 import ZoomToolbar from './components/ZoomToolbar';
+import type { TileJumpRequest } from './components/controls/TileJumpControl';
 import { getPreferredCrs } from './config';
 import type { AppConfig } from './config';
 import type { DrawMode } from './types/map';
@@ -140,6 +144,19 @@ const getZipBlob = (data: unknown) => {
 		return new Blob([copy.buffer], { type: 'application/zip' });
 	}
 	throw new Error('Unsupported shapefile export output.');
+};
+
+const resolveWmtsTileGrid = (map: Map) => {
+	const wmtsSource = map
+		.getLayers()
+		.getArray()
+		.slice()
+		.reverse()
+		.map((layer) =>
+			layer instanceof TileLayer ? layer.getSource() : null,
+		)
+		.find((source) => source instanceof WMTS) as WMTS | undefined;
+	return wmtsSource?.getTileGrid() ?? null;
 };
 
 function App({ config }: AppProps) {
@@ -327,6 +344,50 @@ function App({ config }: AppProps) {
 		view.animate({ zoom: nextZoom, duration: 200 });
 	};
 
+	const handleTileJump = useCallback(
+		(request: TileJumpRequest) => {
+			const map = mapInstanceRef.current;
+			if (!map) return 'Map is not ready yet.';
+			const tileGrid = resolveWmtsTileGrid(map);
+			if (!tileGrid) return 'No WMTS layer is active.';
+			const minZoom = tileGrid.getMinZoom();
+			const maxZoom = tileGrid.getMaxZoom();
+			if (request.z < minZoom || request.z > maxZoom) {
+				return `Zoom must be between ${minZoom} and ${maxZoom}.`;
+			}
+			if (request.x < 0 || request.y < 0) {
+				return 'Tile coordinates must be non-negative.';
+			}
+			const fullRange = tileGrid.getFullTileRange(request.z);
+			const fallbackMax = Math.pow(2, request.z) - 1;
+			const minX = fullRange?.minX ?? 0;
+			const maxX = fullRange?.maxX ?? fallbackMax;
+			const minY = fullRange?.minY ?? 0;
+			const maxY = fullRange?.maxY ?? fallbackMax;
+			const normalizedY =
+				request.mode === 'tms' ? maxY - request.y : request.y;
+			if (
+				normalizedY < minY ||
+				normalizedY > maxY ||
+				request.x < minX ||
+				request.x > maxX
+			) {
+				return `Tile is outside range x:${minX}-${maxX}, y:${minY}-${maxY} at z ${request.z}.`;
+			}
+			const center = tileGrid.getTileCoordCenter([
+				request.z,
+				request.x,
+				normalizedY,
+			]);
+			const resolution = tileGrid.getResolution(request.z);
+			markUserMoved();
+			const view = map.getView();
+			view.animate({ center, resolution, duration: 250 });
+			return null;
+		},
+		[mapInstanceRef, markUserMoved],
+	);
+
 	return (
 		<div className='app'>
 			<MapCanvas className='map' ref={mapRef} />
@@ -345,6 +406,7 @@ function App({ config }: AppProps) {
 				onToggleTileDebug={() =>
 					setIsTileDebugEnabled((enabled) => !enabled)
 				}
+				onTileJump={handleTileJump}
 			/>
 			<ZoomToolbar
 				onZoomIn={() => handleZoom(1)}
