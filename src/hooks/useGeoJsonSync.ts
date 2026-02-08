@@ -4,6 +4,12 @@ import { isEmpty as isExtentEmpty } from 'ol/extent';
 import type Map from 'ol/Map';
 import type Modify from 'ol/interaction/Modify';
 import type VectorSource from 'ol/source/Vector';
+import {
+	getFeatureKeyFromGeoJson,
+	getFeatureKeyFromOl,
+	HOVER_KEY_PROP,
+	setFeatureHoverKey,
+} from '../utils/featureHover';
 import { getUrlState, setUrlState } from '../utils/urlState';
 
 type UseGeoJsonSyncParams = {
@@ -15,6 +21,17 @@ type UseGeoJsonSyncParams = {
 
 type HandleEditorChangeOptions = {
 	fit?: boolean;
+};
+
+const buildGeoJsonFeatureKeys = (value: unknown): string[] => {
+	if (!value || typeof value !== 'object') return [];
+	const asRecord = value as Record<string, unknown>;
+	if (asRecord.type !== 'FeatureCollection') return [];
+	const features = asRecord.features as Record<string, unknown>[] | undefined;
+	if (!Array.isArray(features)) return [];
+	return features.map((feature, index) =>
+		getFeatureKeyFromGeoJson(feature, index),
+	);
 };
 
 export function useGeoJsonSync({
@@ -67,10 +84,20 @@ export function useGeoJsonSync({
 			}
 			try {
 				const parsed = JSON.parse(nextValue);
+				const featureKeys = buildGeoJsonFeatureKeys(parsed);
 				const features = formatRef.current.readFeatures(parsed, {
 					featureProjection: projection,
 					dataProjection: 'EPSG:4326',
 				});
+				if (featureKeys.length === features.length) {
+					features.forEach((feature, index) => {
+						setFeatureHoverKey(feature, featureKeys[index]);
+					});
+				} else {
+					features.forEach((feature, index) => {
+						setFeatureHoverKey(feature, getFeatureKeyFromOl(feature, index));
+					});
+				}
 				vectorSource.clear();
 				vectorSource.addFeatures(features);
 				if (fit) {
@@ -94,10 +121,26 @@ export function useGeoJsonSync({
 	useEffect(() => {
 		const updateGeoJson = () => {
 			const features = vectorSource.getFeatures();
-			const data = formatRef.current.writeFeaturesObject(features, {
+			features.forEach((feature, index) => {
+				setFeatureHoverKey(feature, getFeatureKeyFromOl(feature, index));
+			});
+			const exportFeatures = features.map((feature) => {
+				const clone = feature.clone();
+				clone.unset(HOVER_KEY_PROP, true);
+				return clone;
+			});
+			const data = formatRef.current.writeFeaturesObject(exportFeatures, {
 				featureProjection: projection,
 				dataProjection: 'EPSG:4326',
 			});
+			const typedData = data as { features?: Array<{ properties?: unknown }> };
+			if (Array.isArray(typedData.features)) {
+				typedData.features.forEach((feature) => {
+					if (feature.properties === null) {
+						feature.properties = {};
+					}
+				});
+			}
 			const nextJson = JSON.stringify(data, null, 2);
 			lastSyncedRef.current = nextJson;
 			setGeoJson(nextJson);

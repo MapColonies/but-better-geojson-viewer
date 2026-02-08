@@ -9,6 +9,7 @@ import { getPreferredCrs } from './config';
 import type { AppConfig } from './config';
 import type { DrawMode } from './types/map';
 import { useDrawInteractions } from './hooks/useDrawInteractions';
+import { useFeatureHoverHighlight } from './hooks/useFeatureHoverHighlight';
 import { useGeoJsonSync } from './hooks/useGeoJsonSync';
 import { useMapUrlSync } from './hooks/useMapUrlSync';
 import { useMapInstance } from './hooks/useMapInstance';
@@ -27,6 +28,9 @@ function App({ config }: AppProps) {
 	const vectorSource = useMemo(() => new VectorSource({ wrapX: false }), []);
 	const [drawType, setDrawType] = useState<DrawMode>('None');
 	const [isTileDebugEnabled, setIsTileDebugEnabled] = useState(false);
+	const [hoveredFeatureKey, setHoveredFeatureKey] = useState<string | null>(
+		null,
+	);
 	const preferredCrs = useMemo(
 		() => getPreferredCrs(config.mapProjection),
 		[config.mapProjection],
@@ -85,6 +89,12 @@ function App({ config }: AppProps) {
 		mapRef: mapInstanceRef,
 		modify,
 		projection: config.mapProjection,
+	});
+
+	useFeatureHoverHighlight({
+		mapRef: mapInstanceRef,
+		vectorSource,
+		hoveredKey: hoveredFeatureKey,
 	});
 
 	const handleGeoJsonUpload = useCallback(
@@ -146,6 +156,7 @@ function App({ config }: AppProps) {
 				value={geoJson}
 				onChange={handleEditorChange}
 				onPaste={handleGeoJsonPaste}
+				onHoverFeatureKey={setHoveredFeatureKey}
 				error={geoJsonError}
 			/>
 		</div>
