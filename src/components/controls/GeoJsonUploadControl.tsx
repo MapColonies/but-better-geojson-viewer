@@ -5,11 +5,11 @@ type GeoJsonUploadControlProps = {
 function GeoJsonUploadControl({ onUpload }: GeoJsonUploadControlProps) {
 	return (
 		<div className='control'>
-			<label htmlFor='geojson-upload'>Upload GeoJSON</label>
+			<label htmlFor='geojson-upload'>Upload GeoJSON or Shapefile (zip)</label>
 			<input
 				id='geojson-upload'
 				type='file'
-				accept='.geojson,.json,application/geo+json,application/json'
+				accept='.geojson,.json,.zip,application/geo+json,application/json,application/zip'
 				onChange={(event) => {
 					const file = event.target.files?.[0] ?? null;
 					onUpload(file);
