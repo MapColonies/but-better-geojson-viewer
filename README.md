@@ -8,6 +8,7 @@ React + Vite + TypeScript map viewer built on OpenLayers. It loads WMTS capabili
 - Optional `x-api-key` header for WMTS requests
 - GeoJSON editor with draw tools
 - OpenLayers map with zoom controls
+- GeoJSON and shapefile (zip) import/export
 
 ## Getting started
 
