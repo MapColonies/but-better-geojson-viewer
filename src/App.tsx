@@ -37,6 +37,10 @@ type FeatureCollection = {
 	features: Array<Record<string, unknown>>;
 };
 
+type GeoJsonExportParseResult =
+	| { collection: FeatureCollection }
+	| { error: string };
+
 const normalizeToFeatureCollection = (input: unknown) => {
 	if (!input || typeof input !== 'object') return null;
 	const value = input as GeoJsonObject;
@@ -83,7 +87,7 @@ const ensureExportProperties = (collection: FeatureCollection): FeatureCollectio
 	};
 };
 
-const parseGeoJsonForExport = (source: string) => {
+const parseGeoJsonForExport = (source: string): GeoJsonExportParseResult => {
 	if (!source.trim()) {
 		return { error: 'GeoJSON is empty.' };
 	}
@@ -126,7 +130,14 @@ const getZipBlob = (data: unknown) => {
 		return new Blob([data], { type: 'application/zip' });
 	}
 	if (ArrayBuffer.isView(data)) {
-		return new Blob([data], { type: 'application/zip' });
+		const view = data as ArrayBufferView;
+		const bytes = new Uint8Array(
+			view.buffer,
+			view.byteOffset,
+			view.byteLength,
+		);
+		const copy = new Uint8Array(bytes);
+		return new Blob([copy.buffer], { type: 'application/zip' });
 	}
 	throw new Error('Unsupported shapefile export output.');
 };
