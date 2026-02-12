@@ -1,0 +1,17 @@
+{{- if .Values.wmtsProvider.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+data:
+  default.json: |
+    {
+      "wmtsCapabilitiesUrl": "{{ .Values.wmtsProvider.url }}",
+      "mapProjection": "{{ .Values.wmtsProvider.projection }}",
+      "wmtsApiKey": {{ .Values.wmtsProvider.apiKey | quote }},
+      "defaultWmtsLayers": {{ toJson .Values.wmtsProvider.defaultLayers }}
+    }
+  local.json: |
+    {}
+
+{{- end }}
