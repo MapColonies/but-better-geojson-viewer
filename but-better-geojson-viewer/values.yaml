@@ -1,0 +1,82 @@
+replicaCount: 1
+
+image:
+  repository: acrarolibotnonprod.azurecr.io/vector/geojson-viewer
+  tag: v1.0.0-rc5
+  pullPolicy: IfNotPresent
+
+# Resource limits and requests 
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "50m"
+  limits:
+    memory: "128Mi"
+    cpu: "100m"
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000750000
+  runAsGroup: 1000750000
+  fsGroup: 1000750000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+livenessProbe:
+  httpGet:
+    path: /but-better-geojson-viewer/
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /but-better-geojson-viewer/
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+wmtsProvider:
+  enabled: true
+  url: https://tiles-int.mapcolonies.net/api/raster/v1/wmts/1.0.0/WMTSCapabilities.xml
+  apiKey: "eyJkIjpbInJhc3RlciIsInJhc3RlckV4cG9ydCJdLCJpYXQiOjE2NzYyMTQ5NzIsInN1YiI6ImdldE1hcEN1c3RvbWVyIiwiaXNzIjoibWFwY29sb25pZXMtdG9rZW4tY2xpIn0"
+  projection: EPSG:4326
+  defaultLayers:
+    - osm
+    - bluemarble_zoom_9_test_2-Orthophoto
+    - egypt_1_z17-Orthophoto
+    - VIVID_IRAN-Orthophoto
+    - bluemarble_swap_test-RasterVectorBest
+    - vivid_ihud-Orthophoto
+    - egypt-Orthophoto
+    - SINAY_AZA-RasterVectorBest
+    - prio_test-Orthophoto
+
+
+  
+
+service:
+  type: ClusterIP
+  port: 8080
+
+route:
+  enabled: true
+  path: /but-better-geojson-viewer/
+
+ingress:
+  enabled: false
+

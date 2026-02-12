@@ -1,0 +1,24 @@
+{{- if .Values.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "but-better-geojson-viewer.labels" . | nindent 4 }}
+  annotations:
+    haproxy.router.openshift.io/timeout: 60s
+    router.openshift.io/cookie_samesite: Lax
+    router.openshift.io/cookie_name: "{{ .Release.Name }}-route"
+spec:
+  to:
+    kind: Service
+    name: {{ .Release.Name }}
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  path: {{ .Values.route.path | default "/" | quote }}
+{{- end }}
+
