@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Release.Name }}-config"
+data:
+  default.json: |
+    {
+      "wmtsCapabilitiesUrl": "/map-proxy/api/raster/v1/wmts/1.0.0/WMTSCapabilities.xml",
+      "mapProjection": "{{ .Values.wmtsProvider.projection }}",
+      "wmtsApiKey": {{ .Values.wmtsProvider.apiKey | quote }},
+      "defaultWmtsLayers": {{ toJson .Values.wmtsProvider.defaultLayers }}
+    }
+  local.json: |
+    {}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Release.Name }}-nginx-config"
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name _;
+
+        root /tmp/but-better-geojson-viewer;        
+        index index.html;
+
+        location = /config/local.json {
+            return 200 '{}';
+            add_header Content-Type application/json;
+        }
+
+        location /map-proxy/ {
+            proxy_set_header x-api-key {{ .Values.wmtsProvider.apiKey | quote }}; 
+            proxy_pass https://{{ .Values.wmtsProvider.host }}/;
+            proxy_ssl_server_name on;
+            proxy_set_header Host {{ .Values.wmtsProvider.host }};
+
+            proxy_set_header Accept-Encoding "";
+            sub_filter_once off;
+            sub_filter_types application/xml text/xml;
+            sub_filter '{{ .Values.wmtsProvider.host }}' '$http_host/map-proxy';
+
+            add_header 'Access-Control-Allow-Origin' '*' always;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    }

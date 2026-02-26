@@ -1,0 +1,39 @@
+replicaCount: 1
+
+image:
+  repository: acrarolibotnonprod.azurecr.io/vector/geojson-viewer
+  tag: v1.0.0-rc6
+  pullPolicy: IfNotPresent
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+wmtsProvider:
+  url: "url"
+  apiKey: "api-key"
+  projection: EPSG:4326
+  defaultLayers:
+    - osm
+
+service:
+  type: ClusterIP
+  port: 8080
+
+route:
+  enabled: true
+  path: /

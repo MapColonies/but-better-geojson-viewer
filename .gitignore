@@ -5,5 +5,5 @@ public/monaco
 *.log
 .env
 .env.*
-
+secret.json
 **/local.json
