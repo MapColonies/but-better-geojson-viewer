@@ -2,8 +2,8 @@ apiVersion: v2
 name: but-better-geojson-viewer
 description: A Helm chart for but-better-geojson-viewer
 type: application
-version: 1.0.0
-appVersion: 1.0.0
+version: 0.0.0
+appVersion: 0.0.0
 dependencies:
   - name: mclabels
     version: 1.0.1
