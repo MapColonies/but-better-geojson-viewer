@@ -4,6 +4,7 @@ import { isEmpty as isExtentEmpty } from 'ol/extent';
 import type Map from 'ol/Map';
 import type Modify from 'ol/interaction/Modify';
 import type VectorSource from 'ol/source/Vector';
+import pako from 'pako';
 import {
 	getFeatureKeyFromGeoJson,
 	getFeatureKeyFromOl,
@@ -46,24 +47,42 @@ export function useGeoJsonSync({
 	const [geoJson, setGeoJson] = useState('');
 	const [geoJsonError, setGeoJsonError] = useState('');
 
-	const encodeBase64Url = useCallback((value: string) => {
-		const bytes = new TextEncoder().encode(value);
+	const bytesToBase64Url = useCallback((bytes: Uint8Array) => {
 		let binary = '';
-		bytes.forEach((byte) => {
-			binary += String.fromCharCode(byte);
-		});
+		const chunkSize = 0x8000;
+		for (let index = 0; index < bytes.length; index += chunkSize) {
+			const chunk = bytes.subarray(index, index + chunkSize);
+			binary += String.fromCharCode(...chunk);
+		}
 		const encoded = btoa(binary);
-		return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+		return encoded
+			.replace(/\+/g, '-')
+			.replace(/\//g, '_')
+			.replace(/=+$/g, '');
 	}, []);
 
-	const decodeBase64Url = useCallback((value: string) => {
+	const base64UrlToBytes = useCallback((value: string) => {
 		const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
 		const paddingLength = (4 - (normalized.length % 4)) % 4;
 		const padded = `${normalized}${'='.repeat(paddingLength)}`;
 		const binary = atob(padded);
-		const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-		return new TextDecoder().decode(bytes);
+		return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 	}, []);
+
+	const encodeBase64Url = useCallback((value: string) => {
+		const bytes = new TextEncoder().encode(value);
+		const compressed = pako.deflate(bytes);
+		return bytesToBase64Url(compressed);
+	}, [bytesToBase64Url]);
+
+	const decodeBase64Url = useCallback(
+		(value: string) => {
+			const compressed = base64UrlToBytes(value);
+			const decompressed = pako.inflate(compressed);
+			return new TextDecoder().decode(decompressed);
+		},
+		[base64UrlToBytes],
+	);
 
 	const updateUrlParam = useCallback((encodedValue: string | null) => {
 		setUrlState({ geo: encodedValue });
@@ -95,7 +114,10 @@ export function useGeoJsonSync({
 					});
 				} else {
 					features.forEach((feature, index) => {
-						setFeatureHoverKey(feature, getFeatureKeyFromOl(feature, index));
+						setFeatureHoverKey(
+							feature,
+							getFeatureKeyFromOl(feature, index),
+						);
 					});
 				}
 				vectorSource.clear();
@@ -103,7 +125,7 @@ export function useGeoJsonSync({
 				if (fit) {
 					const extent = vectorSource.getExtent();
 					const map = mapRef.current;
-					if (map && !isExtentEmpty(extent)) {
+					if (map && extent && !isExtentEmpty(extent)) {
 						map.getView().fit(extent, {
 							padding: [40, 40, 40, 40],
 							duration: 300,
@@ -122,7 +144,10 @@ export function useGeoJsonSync({
 		const updateGeoJson = () => {
 			const features = vectorSource.getFeatures();
 			features.forEach((feature, index) => {
-				setFeatureHoverKey(feature, getFeatureKeyFromOl(feature, index));
+				setFeatureHoverKey(
+					feature,
+					getFeatureKeyFromOl(feature, index),
+				);
 			});
 			const exportFeatures = features.map((feature) => {
 				const clone = feature.clone();
@@ -133,7 +158,9 @@ export function useGeoJsonSync({
 				featureProjection: projection,
 				dataProjection: 'EPSG:4326',
 			});
-			const typedData = data as { features?: Array<{ properties?: unknown }> };
+			const typedData = data as {
+				features?: Array<{ properties?: unknown }>;
+			};
 			if (Array.isArray(typedData.features)) {
 				typedData.features.forEach((feature) => {
 					if (feature.properties === null) {
