@@ -7,3 +7,5 @@ public/monaco
 .env.*
 
 **/local.json
+**/mysecret.txt
+**/local.values.yaml

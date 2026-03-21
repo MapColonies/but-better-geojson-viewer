@@ -34,6 +34,7 @@ jobs:
       - name: Build
         env:
           BASE_URL: /but-better-geojson-viewer/
+          VITE_BASE_PATH: /but-better-geojson-viewer/
         run: npm run build
 
       - name: Upload pages artifact
