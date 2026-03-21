@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import GeoJSON from 'ol/format/GeoJSON';
-import { isEmpty as isExtentEmpty } from 'ol/extent';
+import { createEmpty, extend, isEmpty as isExtentEmpty } from 'ol/extent';
 import type Map from 'ol/Map';
 import type Modify from 'ol/interaction/Modify';
 import type VectorSource from 'ol/source/Vector';
@@ -33,6 +33,27 @@ const buildGeoJsonFeatureKeys = (value: unknown): string[] => {
 	return features.map((feature, index) =>
 		getFeatureKeyFromGeoJson(feature, index),
 	);
+};
+
+const computeGeoJsonBbox = (
+	value: unknown,
+	format: GeoJSON,
+): number[] | null => {
+	if (!value || typeof value !== 'object') return null;
+	const asRecord = value as Record<string, unknown>;
+	if (asRecord.type !== 'FeatureCollection') return null;
+	const features = format.readFeatures(asRecord, {
+		dataProjection: 'EPSG:4326',
+		featureProjection: 'EPSG:4326',
+	});
+	const extent = createEmpty();
+	features.forEach((feature) => {
+		const geometry = feature.getGeometry();
+		if (!geometry) return;
+		extend(extent, geometry.getExtent());
+	});
+	if (isExtentEmpty(extent)) return null;
+	return [extent[0], extent[1], extent[2], extent[3]];
 };
 
 export function useGeoJsonSync({
@@ -168,6 +189,12 @@ export function useGeoJsonSync({
 					}
 				});
 			}
+			const bbox = computeGeoJsonBbox(data, formatRef.current);
+			if (bbox) {
+				(data as Record<string, unknown>).bbox = bbox;
+			} else {
+				delete (data as Record<string, unknown>).bbox;
+			}
 			const nextJson = JSON.stringify(data, null, 2);
 			lastSyncedRef.current = nextJson;
 			setGeoJson(nextJson);
@@ -213,7 +240,14 @@ export function useGeoJsonSync({
 		}
 		const timeoutId = window.setTimeout(() => {
 			try {
-				const minified = JSON.stringify(JSON.parse(geoJson));
+				const parsed = JSON.parse(geoJson) as Record<string, unknown>;
+				const bbox = computeGeoJsonBbox(parsed, formatRef.current);
+				if (bbox) {
+					parsed.bbox = bbox;
+				} else {
+					delete parsed.bbox;
+				}
+				const minified = JSON.stringify(parsed);
 				const encoded = encodeBase64Url(minified);
 				updateUrlParam(encoded);
 			} catch (error) {
