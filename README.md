@@ -9,6 +9,8 @@ React + Vite + TypeScript map viewer built on OpenLayers. It loads WMTS capabili
 - GeoJSON editor with draw tools
 - OpenLayers map with zoom controls
 - GeoJSON and shapefile (zip) import/export
+- Automatic bbox calculation for FeatureCollections
+- WKT input synced with the editor (paste WKT to load)
 
 ## Getting started
 
@@ -47,7 +49,7 @@ Example `public/config/local.json`:
 
 ## GeoJSON in URL
 
-The app syncs GeoJSON to the URL using URL-safe base64 in the `geo` query param. The payload is minified JSON (no spaces/newlines). Pasting a URL with `?geo=...` loads the GeoJSON into the editor and map.
+The app syncs GeoJSON to the URL using URL-safe base64 in the `geo` query param. The payload is minified JSON (no spaces/newlines) and includes an auto-calculated `bbox` for FeatureCollections. Pasting a URL with `?geo=...` loads the GeoJSON into the editor and map.
 
 The current map view is stored in the `map` query param as `zoom,x,y` using `config.mapProjection` coordinates. The URL is ordered as `?map=...&geo=...` when both are present. The `map` param is only written after you drag or zoom the map. If `map` is not present, loading `geo` fits the view to the GeoJSON bbox.
 
