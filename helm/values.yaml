@@ -1,0 +1,135 @@
+global:
+  cloudProvider: {}
+  tracing: {}
+  metrics: {}
+
+mclabels:
+  component: frontend
+  partOf: geojson-viewer
+  owner: common
+  prometheus:
+    enabled: false
+
+enabled: true
+replicaCount: 1
+revisionHistoryLimit: 5 # Amount of revisions we keep
+nodePort: 30030 # for minikube deployment only
+resetOnConfigChange: false
+
+nameOverride: ''
+fullnameOverride: ''
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  path: /
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  path: /
+
+podAnnotations: {}
+
+extraVolumes: []
+
+extraVolumeMounts: []
+
+extraEnvVars: []
+
+command: []
+args: []
+# command: [ "/bin/sh", "-c", "--" ]
+# args: [ "while true; do sleep infinity; done;" ]
+
+sidecars: []
+
+cloudProvider:
+  dockerRegistryUrl: ''
+  imagePullSecretName: ''
+  flavor: openshift
+
+caSecretName: ''
+caPath: '/usr/local/share/ca-certificates'
+caKey: 'ca.crt'
+
+image:
+  repository: geojson-viewer
+  # If commented, appVersion will be taken. See: _helpers.tpl
+  # tag: 'latest'
+  pullPolicy: IfNotPresent
+
+env:
+  port: 8080
+  targetPort: 8080
+  protocol: TCP
+
+runtimeConfig:
+  wmtsCapabilitiesUrl: ''
+  mapProjection: 'EPSG:4326'
+  wmtsApiKey: null
+  defaultWmtsLayers: []
+
+nginxConfig:
+  enabled: true
+  conf: |
+    server {
+      listen 80;
+      server_name _;
+
+      root /usr/share/nginx/html;
+      index index.html;
+
+      location / {
+        try_files $uri /index.html;
+      }
+
+      location = /config/local.json {
+        try_files $uri =404;
+      }
+
+      location ~* \.(?:js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$ {
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+      }
+    }
+
+resources:
+  enabled: true
+  value:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+route:
+  enabled: true
+  path: /
+  host: ''
+  timeout:
+    enabled: false # defaults to 30s by openshift
+    duration: 60s # supported units (us, ms, s, m, h, d)
+  rewriteTarget: ''
+  tls:
+    enabled: true
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+    useCerts: false
+    certificate: ''
+    key: ''
+    caCertificate: ''
+
+ingress:
+  enabled: false
+  path: /
+  host: 'localhost'
+  cors:
+    enabled: true
+    origin: '*'

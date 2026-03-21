@@ -1,0 +1,9 @@
+{{- if .Values.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-runtime-config" (include "but-better-geojson-viewer.fullname" .) }}
+data:
+  default.json: |
+    {{- .Values.runtimeConfig | toJson | nindent 4 }}
+{{- end }}

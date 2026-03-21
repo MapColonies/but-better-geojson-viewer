@@ -7,3 +7,4 @@ dist
 
 **/local.json
 **/mysecret.txt
+**/local.values.yaml

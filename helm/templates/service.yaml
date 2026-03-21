@@ -1,0 +1,31 @@
+{{- $releaseName := .Release.Name -}}
+{{- $chartName := include "but-better-geojson-viewer.name" . -}}
+{{- $cloudProviderFlavor := include "but-better-geojson-viewer.cloudProviderFlavor" . -}}
+{{- if .Values.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-service" (include "but-better-geojson-viewer.fullname" .) }}
+  labels:
+    app: {{ $chartName }}
+    component: {{ $chartName }}
+    release: {{ $releaseName }}
+    {{- include "but-better-geojson-viewer.labels" . | nindent 4 }}
+spec:
+  {{- if eq $cloudProviderFlavor "minikube" }}
+  type: NodePort
+  {{- end }}
+  ports:
+    - port: {{ .Values.env.port }}
+      targetPort: {{ .Values.env.targetPort }}
+      protocol: {{ .Values.env.protocol }}
+      name: http
+      {{- if eq $cloudProviderFlavor "minikube" }}
+      nodePort: {{ .Values.nodePort }}
+      {{- end }}
+  selector:
+    app: {{ $chartName }}
+    release: {{ $releaseName }}
+    run: {{ $releaseName }}-{{ $chartName }}
+    {{- include "but-better-geojson-viewer.selectorLabels" . | nindent 4 }}
+{{- end }}
