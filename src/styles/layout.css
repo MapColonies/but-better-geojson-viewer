@@ -56,6 +56,23 @@
 	letter-spacing: 0.02rem;
 }
 
+.dev-notice {
+	position: absolute;
+	left: 1rem;
+	bottom: 1rem;
+	max-width: min(20rem, 70vw);
+	padding: 0.5rem 0.75rem;
+	border-radius: 0.75rem;
+	border: 1px solid rgba(29, 27, 22, 0.12);
+	background: rgba(255, 255, 255, 0.92);
+	backdrop-filter: blur(10px);
+	box-shadow: 0 10px 30px rgba(29, 27, 22, 0.12);
+	font-size: 0.72rem;
+	font-weight: 600;
+	color: #b44d3c;
+	letter-spacing: 0.015rem;
+}
+
 @media (max-width: 720px) {
 	.map {
 		right: 0;
@@ -72,5 +89,12 @@
 	.geojson-panel {
 		width: auto;
 		height: min(45vh, 22.5rem);
+	}
+
+	.dev-notice {
+		left: 0.75rem;
+		right: 0.75rem;
+		max-width: none;
+		font-size: 0.68rem;
 	}
 }

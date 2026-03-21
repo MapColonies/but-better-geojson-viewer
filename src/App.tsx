@@ -486,6 +486,9 @@ function App({ config }: AppProps) {
 	return (
 		<div className='app'>
 			<MapCanvas className='map' ref={mapRef} />
+			<div className='dev-notice'>
+				Development tool only. Not part of MapColonies production systems.
+			</div>
 			<ControlsPanel
 				capabilitiesError={capabilitiesError}
 				selectedLayerTitle={selectedLayerTitle}
