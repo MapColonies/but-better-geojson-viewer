@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type Map from 'ol/Map';
 import TileLayer from 'ol/layer/Tile';
+import GeoJSON from 'ol/format/GeoJSON';
+import WKT from 'ol/format/WKT';
+import GeometryCollection from 'ol/geom/GeometryCollection';
 import VectorSource from 'ol/source/Vector';
 import WMTS from 'ol/source/WMTS';
 import shp from 'shpjs';
@@ -169,6 +172,10 @@ function App({ config }: AppProps) {
 	);
 	const [uploadError, setUploadError] = useState('');
 	const [exportError, setExportError] = useState('');
+	const [wktInput, setWktInput] = useState('');
+	const [wktError, setWktError] = useState('');
+	const wktFormat = useMemo(() => new WKT(), []);
+	const geoJsonFormat = useMemo(() => new GeoJSON(), []);
 	const preferredCrs = useMemo(
 		() => getPreferredCrs(config.mapProjection),
 		[config.mapProjection],
@@ -235,6 +242,38 @@ function App({ config }: AppProps) {
 		}
 	}, [geoJson, exportError]);
 
+	useEffect(() => {
+		if (wktError) {
+			setWktError('');
+		}
+	}, [geoJson]);
+
+	const getWktFromGeoJson = useCallback(
+		(source: string) => {
+			const parsed = parseGeoJsonForExport(source);
+			if ('error' in parsed) return '';
+			const features = geoJsonFormat.readFeatures(parsed.collection, {
+				dataProjection: 'EPSG:4326',
+				featureProjection: 'EPSG:4326',
+			});
+			const geometries = features
+				.map((feature) => feature.getGeometry())
+				.filter((geometry): geometry is NonNullable<typeof geometry> =>
+					Boolean(geometry),
+				);
+			if (geometries.length === 0) return '';
+			const geometry =
+				geometries.length === 1
+					? geometries[0]
+					: new GeometryCollection(geometries);
+			return wktFormat.writeGeometry(geometry, {
+				dataProjection: 'EPSG:4326',
+				featureProjection: 'EPSG:4326',
+			});
+		},
+		[geoJsonFormat, wktFormat],
+	);
+
 	const handleEditorChangeWithClear = useCallback(
 		(value?: string, options?: { fit?: boolean }) => {
 			if (uploadError) {
@@ -246,6 +285,57 @@ function App({ config }: AppProps) {
 			handleEditorChange(value, options);
 		},
 		[handleEditorChange, exportError, uploadError],
+	);
+
+	const handleWktChange = useCallback(
+		(value: string) => {
+			setWktInput(value);
+			if (!value.trim()) {
+				setWktError('');
+				return;
+			}
+			try {
+				const feature = wktFormat.readFeature(value, {
+					dataProjection: 'EPSG:4326',
+					featureProjection: 'EPSG:4326',
+				});
+				const featureObject = geoJsonFormat.writeFeatureObject(feature, {
+					dataProjection: 'EPSG:4326',
+					featureProjection: 'EPSG:4326',
+				});
+				if (!featureObject || featureObject.type !== 'Feature') {
+					setWktError('WKT did not produce a feature.');
+					return;
+				}
+				const normalized: FeatureCollection = {
+					type: 'FeatureCollection',
+					features: [
+						{
+							...featureObject,
+							properties:
+								featureObject.properties === null ||
+								featureObject.properties === undefined
+									? {}
+									: featureObject.properties,
+						},
+					],
+				};
+				const json = JSON.stringify(normalized, null, 2);
+				setWktError('');
+				handleEditorChangeWithClear(json, { fit: true });
+			} catch (error) {
+				const rawMessage =
+					error instanceof Error ? error.message : 'Unknown error';
+				const trimmedMessage = rawMessage.split(' in ')[0].trim();
+				setWktError(`Failed to load WKT: ${trimmedMessage}`);
+			}
+		},
+		[
+			geoJsonFormat,
+			handleEditorChangeWithClear,
+			wktError,
+			wktFormat,
+		],
 	);
 
 	useFeatureHoverHighlight({
@@ -305,6 +395,11 @@ function App({ config }: AppProps) {
 			setExportError('');
 		}
 	}, [exportError, geoJson]);
+
+	useEffect(() => {
+		const wkt = getWktFromGeoJson(geoJson);
+		setWktInput(wkt);
+	}, [geoJson, getWktFromGeoJson]);
 
 	const handleShapefileExport = useCallback(async () => {
 		const parsed = parseGeoJsonForExport(geoJson);
@@ -400,6 +495,9 @@ function App({ config }: AppProps) {
 				onGeoJsonUpload={handleGeoJsonUpload}
 				onGeoJsonExport={handleGeoJsonExport}
 				onShapefileExport={handleShapefileExport}
+				onWktChange={handleWktChange}
+				wktValue={wktInput}
+				wktError={wktError}
 				geoJsonExportDisabled={!geoJson.trim() || !!geoJsonError}
 				geoJsonExportError={exportError}
 				isTileDebugEnabled={isTileDebugEnabled}

@@ -4,6 +4,7 @@ import GeoJsonUploadControl from './controls/GeoJsonUploadControl';
 import LayerChecklist from './controls/LayerChecklist';
 import LayerSearchControl from './controls/LayerSearchControl';
 import PanelToggle from './controls/PanelToggle';
+import WktControl from './controls/WktControl';
 import type { LayerOption } from './controls/types';
 import DebugTileLayer from './controls/DebugTileLayer';
 import TileJumpControl from './controls/TileJumpControl';
@@ -18,6 +19,9 @@ type ControlsPanelProps = {
 	onGeoJsonUpload: (file: File | null) => void;
 	onGeoJsonExport: () => void | Promise<void>;
 	onShapefileExport: () => void | Promise<void>;
+	onWktChange: (value: string) => void;
+	wktValue: string;
+	wktError?: string;
 	geoJsonExportDisabled: boolean;
 	geoJsonExportError?: string;
 	isTileDebugEnabled: boolean;
@@ -34,6 +38,9 @@ function ControlsPanel({
 	onGeoJsonUpload,
 	onGeoJsonExport,
 	onShapefileExport,
+	onWktChange,
+	wktValue,
+	wktError,
 	geoJsonExportDisabled,
 	geoJsonExportError,
 	isTileDebugEnabled,
@@ -95,6 +102,11 @@ function ControlsPanel({
 						onExportShapefile={onShapefileExport}
 						disabled={geoJsonExportDisabled}
 						error={geoJsonExportError}
+					/>
+					<WktControl
+						value={wktValue}
+						onChange={onWktChange}
+						error={wktError}
 					/>
 					<TileJumpControl onJumpToTile={onTileJump} />
 					<DebugTileLayer
