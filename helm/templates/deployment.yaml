@@ -1,19 +1,19 @@
 {{- $releaseName := .Release.Name -}}
-{{- $chartName := include "but-better-geojson-viewer.name" . -}}
-{{- $cloudProviderFlavor := include "but-better-geojson-viewer.cloudProviderFlavor" . -}}
-{{- $cloudProviderDockerRegistryUrl := include "but-better-geojson-viewer.cloudProviderDockerRegistryUrl" . -}}
-{{- $cloudProviderImagePullSecretName := include "but-better-geojson-viewer.cloudProviderImagePullSecretName" . -}}
-{{- $imageTag := include "but-better-geojson-viewer.tag" . -}}
+{{- $chartName := include "geojson-viewer.name" . -}}
+{{- $cloudProviderFlavor := include "geojson-viewer.cloudProviderFlavor" . -}}
+{{- $cloudProviderDockerRegistryUrl := include "geojson-viewer.cloudProviderDockerRegistryUrl" . -}}
+{{- $cloudProviderImagePullSecretName := include "geojson-viewer.cloudProviderImagePullSecretName" . -}}
+{{- $imageTag := include "geojson-viewer.tag" . -}}
 {{- if .Values.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ printf "%s-deployment" (include "but-better-geojson-viewer.fullname" .) }}
+  name: {{ printf "%s-deployment" (include "geojson-viewer.fullname" .) }}
   labels:
     app: {{ $chartName }}
     component: {{ $chartName }}
     release: {{ $releaseName }}
-    {{- include "but-better-geojson-viewer.labels" . | nindent 4 }}
+    {{- include "geojson-viewer.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
@@ -22,14 +22,14 @@ spec:
       app: {{ $chartName }}
       release: {{ $releaseName }}
       run: {{ $releaseName }}-{{ $chartName }}
-      {{- include "but-better-geojson-viewer.selectorLabels" . | nindent 6 }}
+      {{- include "geojson-viewer.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         app: {{ $chartName }}
         release: {{ $releaseName }}
         run: {{ $releaseName }}-{{ $chartName }}
-        {{- include "but-better-geojson-viewer.labels" . | nindent 8 }}
+        {{- include "geojson-viewer.labels" . | nindent 8 }}
       annotations:
         {{ include "mclabels.annotations" . | nindent 8 }}
       {{- if .Values.resetOnConfigChange }}
@@ -118,11 +118,11 @@ spec:
       volumes:
         - name: runtime-config
           configMap:
-            name: {{ printf "%s-runtime-config" (include "but-better-geojson-viewer.fullname" .) }}
+            name: {{ printf "%s-runtime-config" (include "geojson-viewer.fullname" .) }}
         {{- if .Values.nginxConfig.enabled }}
         - name: nginx-config
           configMap:
-            name: {{ printf "%s-nginx-config" (include "but-better-geojson-viewer.fullname" .) }}
+            name: {{ printf "%s-nginx-config" (include "geojson-viewer.fullname" .) }}
         {{- end }}
         {{- if .Values.caSecretName }}
         - name: root-ca

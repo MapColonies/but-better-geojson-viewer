@@ -1,6 +1,6 @@
 {
-	"name": "but-better-geojson-viewer",
-	"homepage": "https://mapcolonies.github.io/but-better-geojson-viewer/",
+	"name": "geojson-viewer",
+	"homepage": "https://mapcolonies.github.io/geojson-viewer/",
 	"private": true,
 	"version": "1.0.0",
 	"type": "module",
