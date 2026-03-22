@@ -1,6 +1,6 @@
 apiVersion: v2
-name: but-better-geojson-viewer
-description: A Helm chart for but-better-geojson-viewer
+name: geojson-viewer
+description: A Helm chart for geojson-viewer
 type: application
 version: 0.0.0
 appVersion: 0.0.0

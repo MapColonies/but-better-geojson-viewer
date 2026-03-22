@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "but-better-geojson-viewer.name" -}}
+{{- define "geojson-viewer.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "but-better-geojson-viewer.fullname" -}}
+{{- define "geojson-viewer.fullname" -}}
 {{- if .Values.fullnameOverride -}}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "but-better-geojson-viewer.chart" -}}
+{{- define "geojson-viewer.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "but-better-geojson-viewer.labels" -}}
-helm.sh/chart: {{ include "but-better-geojson-viewer.chart" . }}
-{{ include "but-better-geojson-viewer.selectorLabels" . }}
+{{- define "geojson-viewer.labels" -}}
+helm.sh/chart: {{ include "geojson-viewer.chart" . }}
+{{ include "geojson-viewer.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -46,15 +46,15 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Returns the tag of the chart.
 */}}
-{{- define "but-better-geojson-viewer.tag" -}}
+{{- define "geojson-viewer.tag" -}}
 {{- default (printf "v%s" .Chart.AppVersion) .Values.image.tag }}
 {{- end }}
 
 {{/*
 Selector labels
 */}}
-{{- define "but-better-geojson-viewer.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "but-better-geojson-viewer.name" . }}
+{{- define "geojson-viewer.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "geojson-viewer.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{ include "mclabels.selectorLabels" . }}
 {{- end }}
@@ -62,7 +62,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{/*
 Returns the cloud provider name from global if exists or from the chart's values, defaults to minikube
 */}}
-{{- define "but-better-geojson-viewer.cloudProviderFlavor" -}}
+{{- define "geojson-viewer.cloudProviderFlavor" -}}
 {{- if .Values.global.cloudProvider.flavor }}
     {{- .Values.global.cloudProvider.flavor -}}
 {{- else if .Values.cloudProvider -}}
@@ -75,7 +75,7 @@ Returns the cloud provider name from global if exists or from the chart's values
 {{/*
 Returns the cloud provider docker registry url from global if exists or from the chart's values
 */}}
-{{- define "but-better-geojson-viewer.cloudProviderDockerRegistryUrl" -}}
+{{- define "geojson-viewer.cloudProviderDockerRegistryUrl" -}}
 {{- if .Values.global.cloudProvider.dockerRegistryUrl }}
     {{- printf "%s/" .Values.global.cloudProvider.dockerRegistryUrl -}}
 {{- else if .Values.cloudProvider.dockerRegistryUrl -}}
@@ -87,7 +87,7 @@ Returns the cloud provider docker registry url from global if exists or from the
 {{/*
 Returns the cloud provider image pull secret name from global if exists or from the chart's values
 */}}
-{{- define "but-better-geojson-viewer.cloudProviderImagePullSecretName" -}}
+{{- define "geojson-viewer.cloudProviderImagePullSecretName" -}}
 {{- if .Values.global.cloudProvider.imagePullSecretName }}
     {{- .Values.global.cloudProvider.imagePullSecretName -}}
 {{- else if .Values.cloudProvider.imagePullSecretName -}}
@@ -98,7 +98,7 @@ Returns the cloud provider image pull secret name from global if exists or from 
 {{/*
 Returns the tracing url from global if exists or from the chart's values
 */}}
-{{- define "but-better-geojson-viewer.tracingUrl" -}}
+{{- define "geojson-viewer.tracingUrl" -}}
 {{- if .Values.global.tracing.url }}
     {{- .Values.global.tracing.url -}}
 {{- else if .Values.cloudProvider -}}
@@ -109,7 +109,7 @@ Returns the tracing url from global if exists or from the chart's values
 {{/*
 Returns the tracing url from global if exists or from the chart's values
 */}}
-{{- define "but-better-geojson-viewer.metricsUrl" -}}
+{{- define "geojson-viewer.metricsUrl" -}}
 {{- if .Values.global.metrics.url }}
     {{- .Values.global.metrics.url -}}
 {{- else -}}

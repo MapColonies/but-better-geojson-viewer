@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ printf "%s-nginx-config" (include "but-better-geojson-viewer.fullname" .) }}
+  name: {{ printf "%s-nginx-config" (include "geojson-viewer.fullname" .) }}
 data:
   default.conf: |
 {{- .Values.nginxConfig.conf | nindent 4 }}
