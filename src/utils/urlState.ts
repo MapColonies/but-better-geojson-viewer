@@ -1,6 +1,7 @@
 export type UrlStateUpdate = {
 	map?: string | null;
 	geo?: string | null;
+	layers?: string | null;
 };
 
 export const getUrlState = () => {
@@ -8,6 +9,7 @@ export const getUrlState = () => {
 	return {
 		map: params.get('map'),
 		geo: params.get('geo'),
+		layers: params.get('layers'),
 	};
 };
 
@@ -16,8 +18,11 @@ export const setUrlState = (update: UrlStateUpdate) => {
 	const params = new URLSearchParams(url.search);
 	const currentMap = params.get('map');
 	const currentGeo = params.get('geo');
+	const currentLayers = params.get('layers');
 	const mapValue = update.map === undefined ? currentMap : update.map;
 	const geoValue = update.geo === undefined ? currentGeo : update.geo;
+	const layersValue =
+		update.layers === undefined ? currentLayers : update.layers;
 	const ordered = new URLSearchParams();
 	if (mapValue) {
 		ordered.set('map', mapValue);
@@ -25,8 +30,11 @@ export const setUrlState = (update: UrlStateUpdate) => {
 	if (geoValue) {
 		ordered.set('geo', geoValue);
 	}
+	if (layersValue) {
+		ordered.set('layers', layersValue);
+	}
 	for (const [key, value] of params.entries()) {
-		if (key === 'map' || key === 'geo') continue;
+		if (key === 'map' || key === 'geo' || key === 'layers') continue;
 		ordered.append(key, value);
 	}
 	url.search = ordered.toString();

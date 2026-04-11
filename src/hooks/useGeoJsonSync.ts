@@ -4,7 +4,6 @@ import { createEmpty, extend, isEmpty as isExtentEmpty } from 'ol/extent';
 import type Map from 'ol/Map';
 import type Modify from 'ol/interaction/Modify';
 import type VectorSource from 'ol/source/Vector';
-import pako from 'pako';
 import {
 	getFeatureKeyFromGeoJson,
 	getFeatureKeyFromOl,
@@ -12,6 +11,10 @@ import {
 	setFeatureHoverKey,
 } from '../utils/featureHover';
 import { getUrlState, setUrlState } from '../utils/urlState';
+import {
+	decodeCompressedBase64Url,
+	encodeCompressedBase64Url,
+} from '../utils/urlCompression';
 
 type UseGeoJsonSyncParams = {
 	vectorSource: VectorSource;
@@ -68,42 +71,13 @@ export function useGeoJsonSync({
 	const [geoJson, setGeoJson] = useState('');
 	const [geoJsonError, setGeoJsonError] = useState('');
 
-	const bytesToBase64Url = useCallback((bytes: Uint8Array) => {
-		let binary = '';
-		const chunkSize = 0x8000;
-		for (let index = 0; index < bytes.length; index += chunkSize) {
-			const chunk = bytes.subarray(index, index + chunkSize);
-			binary += String.fromCharCode(...chunk);
-		}
-		const encoded = btoa(binary);
-		return encoded
-			.replace(/\+/g, '-')
-			.replace(/\//g, '_')
-			.replace(/=+$/g, '');
-	}, []);
-
-	const base64UrlToBytes = useCallback((value: string) => {
-		const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
-		const paddingLength = (4 - (normalized.length % 4)) % 4;
-		const padded = `${normalized}${'='.repeat(paddingLength)}`;
-		const binary = atob(padded);
-		return Uint8Array.from(binary, (char) => char.charCodeAt(0));
-	}, []);
-
 	const encodeBase64Url = useCallback((value: string) => {
-		const bytes = new TextEncoder().encode(value);
-		const compressed = pako.deflate(bytes);
-		return bytesToBase64Url(compressed);
-	}, [bytesToBase64Url]);
+		return encodeCompressedBase64Url(value);
+	}, []);
 
-	const decodeBase64Url = useCallback(
-		(value: string) => {
-			const compressed = base64UrlToBytes(value);
-			const decompressed = pako.inflate(compressed);
-			return new TextDecoder().decode(decompressed);
-		},
-		[base64UrlToBytes],
-	);
+	const decodeBase64Url = useCallback((value: string) => {
+		return decodeCompressedBase64Url(value);
+	}, []);
 
 	const updateUrlParam = useCallback((encodedValue: string | null) => {
 		setUrlState({ geo: encodedValue });

@@ -20,6 +20,7 @@ import type { DrawMode } from './types/map';
 import { useDrawInteractions } from './hooks/useDrawInteractions';
 import { useFeatureHoverHighlight } from './hooks/useFeatureHoverHighlight';
 import { useGeoJsonSync } from './hooks/useGeoJsonSync';
+import { useLayersUrlSync } from './hooks/useLayersUrlSync';
 import { useMapUrlSync } from './hooks/useMapUrlSync';
 import { useMapInstance } from './hooks/useMapInstance';
 import { useTileDebugLayer } from './hooks/useTileDebugLayer';
@@ -235,6 +236,12 @@ function App({ config }: AppProps) {
 	const activeSelectedLayerTitle = useCsw
 		? cswSelectedLayerTitle
 		: selectedLayerTitle;
+
+	useLayersUrlSync({
+		layers: activeLayers,
+		selectedLayers: activeSelectedLayers,
+		setSelectedLayers: setActiveSelectedLayers,
+	});
 
 	useWmtsLayer({
 		mapRef: mapInstanceRef,

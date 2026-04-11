@@ -68,6 +68,8 @@ The app syncs GeoJSON to the URL using URL-safe base64 in the `geo` query param.
 
 The current map view is stored in the `map` query param as `zoom,x,y` using `config.mapProjection` coordinates. The URL is ordered as `?map=...&geo=...` when both are present. The `map` param is only written after you drag or zoom the map. If `map` is not present, loading `geo` fits the view to the GeoJSON bbox.
 
+Selected WMTS/CSW layers are stored in the `layers` query param as a zlib-compressed, base64url-encoded JSON array of layer IDs. If the param is present on load, the app enables those layers in the same order.
+
 ## Build
 
 ```bash
