@@ -1,4 +1,5 @@
 {
+	"cswUrl": null,
 	"wmtsCapabilitiesUrl": "https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/1.0.0/WMTSCapabilities.xml",
 	"mapProjection": "EPSG:4326",
 	"wmtsApiKey": null,

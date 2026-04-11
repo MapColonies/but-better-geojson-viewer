@@ -69,6 +69,7 @@ env:
   protocol: TCP
 
 runtimeConfig:
+  cswUrl: ''
   wmtsCapabilitiesUrl: ''
   mapProjection: 'EPSG:4326'
   wmtsApiKey: null

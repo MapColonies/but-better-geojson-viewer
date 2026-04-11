@@ -1,11 +1,13 @@
 export type AppConfig = {
-	wmtsCapabilitiesUrl: string;
+	cswUrl?: string;
+	wmtsCapabilitiesUrl?: string;
 	mapProjection: string;
 	wmtsApiKey?: string;
 	defaultWmtsLayers?: string[];
 };
 
 type RawAppConfig = Partial<AppConfig> & {
+	cswUrl?: string | null;
 	wmtsApiKey?: string | null;
 	defaultWmtsLayers?: Array<string | null> | null;
 };
@@ -28,6 +30,7 @@ const baseConfig = {
 };
 
 const resolveString = (override?: string | null, fallback?: string | null) => {
+	if (override === null) return '';
 	const normalizedOverride = normalize(override ?? '');
 	if (normalizedOverride) return normalizedOverride;
 	return normalize(fallback ?? '');
@@ -44,6 +47,7 @@ const resolveLayers = (
 };
 
 const toAppConfig = (base: RawAppConfig, override?: RawAppConfig): AppConfig => ({
+	cswUrl: resolveString(override?.cswUrl, base.cswUrl),
 	wmtsCapabilitiesUrl: resolveString(
 		override?.wmtsCapabilitiesUrl,
 		base.wmtsCapabilitiesUrl,

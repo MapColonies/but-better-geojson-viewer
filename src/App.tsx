@@ -23,8 +23,10 @@ import { useGeoJsonSync } from './hooks/useGeoJsonSync';
 import { useMapUrlSync } from './hooks/useMapUrlSync';
 import { useMapInstance } from './hooks/useMapInstance';
 import { useTileDebugLayer } from './hooks/useTileDebugLayer';
+import { useCswCatalog } from './hooks/useCswCatalog';
 import { useWmtsCapabilities } from './hooks/useWmtsCapabilities';
 import { useWmtsLayer } from './hooks/useWmtsLayer';
+import { useWmtsLayerFromCsw } from './hooks/useWmtsLayerFromCsw';
 
 const MAX_VIEW_ZOOM = 20;
 
@@ -180,6 +182,12 @@ function App({ config }: AppProps) {
 		() => getPreferredCrs(config.mapProjection),
 		[config.mapProjection],
 	);
+	const hasCswUrl = Boolean(config.cswUrl?.trim());
+	const hasWmtsUrl = Boolean(config.wmtsCapabilitiesUrl?.trim());
+	const hasConfigConflict = hasCswUrl && hasWmtsUrl;
+	const hasMissingConfig = !hasCswUrl && !hasWmtsUrl;
+	const useCsw = hasCswUrl && !hasConfigConflict;
+	const useWmts = hasWmtsUrl && !hasConfigConflict;
 
 	const {
 		capabilities,
@@ -189,10 +197,25 @@ function App({ config }: AppProps) {
 		selectedLayerTitle,
 		capabilitiesError,
 	} = useWmtsCapabilities(
-		config.wmtsCapabilitiesUrl,
+		config.wmtsCapabilitiesUrl ?? '',
 		preferredCrs,
 		config.wmtsApiKey,
 		config.defaultWmtsLayers,
+		useWmts,
+	);
+
+	const {
+		layers: cswLayers,
+		selectedLayers: cswSelectedLayers,
+		setSelectedLayers: setCswSelectedLayers,
+		selectedLayerTitle: cswSelectedLayerTitle,
+		error: cswError,
+		wmtsMetadataByLayerId,
+	} = useCswCatalog(
+		config.cswUrl ?? '',
+		config.wmtsApiKey,
+		config.defaultWmtsLayers,
+		useCsw,
 	);
 
 	const { mapRef: mapInstanceRef, modify } = useMapInstance({
@@ -204,18 +227,43 @@ function App({ config }: AppProps) {
 
 	const { markUserMoved } = useMapUrlSync(mapInstanceRef);
 
+	const activeLayers = useCsw ? cswLayers : layers;
+	const activeSelectedLayers = useCsw ? cswSelectedLayers : selectedLayers;
+	const setActiveSelectedLayers = useCsw
+		? setCswSelectedLayers
+		: setSelectedLayers;
+	const activeSelectedLayerTitle = useCsw
+		? cswSelectedLayerTitle
+		: selectedLayerTitle;
+
 	useWmtsLayer({
 		mapRef: mapInstanceRef,
-		capabilities,
-		selectedLayers,
+		capabilities: useWmts ? capabilities : null,
+		selectedLayers: useWmts ? activeSelectedLayers : [],
 		apiKey: config.wmtsApiKey,
 	});
+
+	const { error: cswLayerError } = useWmtsLayerFromCsw({
+		mapRef: mapInstanceRef,
+		selectedLayers: useCsw ? activeSelectedLayers : [],
+		wmtsMetadataByLayerId,
+		apiKey: config.wmtsApiKey,
+		enabled: useCsw,
+	});
+
+	const activeCapabilitiesError = hasConfigConflict
+		? 'Configure either cswUrl or wmtsCapabilitiesUrl, not both.'
+		: hasMissingConfig
+			? 'Configure either cswUrl or wmtsCapabilitiesUrl to load layers.'
+			: useCsw
+				? cswError || cswLayerError
+				: capabilitiesError;
 
 	useTileDebugLayer({
 		mapRef: mapInstanceRef,
 		enabled: isTileDebugEnabled,
 		projection: config.mapProjection,
-		selectedLayerIds: selectedLayers,
+		selectedLayerIds: activeSelectedLayers,
 	});
 
 	const handleDrawEnd = useCallback(() => {
@@ -490,11 +538,11 @@ function App({ config }: AppProps) {
 				Development tool only. Not part of MapColonies production systems.
 			</div>
 			<ControlsPanel
-				capabilitiesError={capabilitiesError}
-				selectedLayerTitle={selectedLayerTitle}
-				layers={layers}
-				selectedLayers={selectedLayers}
-				onLayerChange={setSelectedLayers}
+				capabilitiesError={activeCapabilitiesError}
+				selectedLayerTitle={activeSelectedLayerTitle}
+				layers={activeLayers}
+				selectedLayers={activeSelectedLayers}
+				onLayerChange={setActiveSelectedLayers}
 				onGeoJsonUpload={handleGeoJsonUpload}
 				onGeoJsonExport={handleGeoJsonExport}
 				onShapefileExport={handleShapefileExport}
