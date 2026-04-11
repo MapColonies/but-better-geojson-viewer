@@ -5,7 +5,8 @@ React + Vite + TypeScript map viewer built on OpenLayers. It loads WMTS capabili
 ## Features
 
 - WMTS capabilities loading with layer selection
-- Optional `x-api-key` header for WMTS requests
+- CSW catalog loading (fetch layers first, then WMTS per layer)
+- Optional `x-api-key` header for WMTS/CSW requests
 - GeoJSON editor with draw tools
 - OpenLayers map with zoom controls
 - GeoJSON and shapefile (zip) import/export
@@ -30,17 +31,31 @@ Configuration is loaded in this order (later values override earlier ones):
 
 ### Runtime config
 
-`public/config/default.json` and `public/config/local.json` are fetched on app boot, so you can change WMTS settings after deploy without rebuilding. Local overrides default.
+`public/config/default.json` and `public/config/local.json` are fetched on app boot, so you can change WMTS/CSW settings after deploy without rebuilding. Local overrides default.
 
 ### Config files
 
 `config/default.json` provides the baseline configuration. You can add overrides in `config/local.json` (ignored by version control).
 
-Example `public/config/local.json`:
+Provide either `cswUrl` or `wmtsCapabilitiesUrl` (not both). Because the default config includes a WMTS URL, set `wmtsCapabilitiesUrl` to `null` in your local runtime config when using CSW.
+
+Example `public/config/local.json` (WMTS):
 
 ```json
 {
 	"wmtsCapabilitiesUrl": "https://example.com/wmts?SERVICE=WMTS&REQUEST=GetCapabilities",
+	"mapProjection": "EPSG:4326",
+	"wmtsApiKey": "your-api-key",
+	"defaultWmtsLayers": ["example-layer-id", "secondary-layer-id"]
+}
+```
+
+Example `public/config/local.json` (CSW):
+
+```json
+{
+	"cswUrl": "https://example.com/raster-catalog/csw",
+	"wmtsCapabilitiesUrl": null,
 	"mapProjection": "EPSG:4326",
 	"wmtsApiKey": "your-api-key",
 	"defaultWmtsLayers": ["example-layer-id", "secondary-layer-id"]

@@ -30,6 +30,7 @@ export function useWmtsCapabilities(
 	preferredCrs: string,
 	apiKey?: string,
 	defaultLayerIds?: string[],
+	enabled = true,
 ): UseWmtsCapabilitiesResult {
 	const [capabilities, setCapabilities] = useState<Record<
 		string,
@@ -40,6 +41,13 @@ export function useWmtsCapabilities(
 	const [capabilitiesError, setCapabilitiesError] = useState('');
 
 	useEffect(() => {
+		if (!enabled || !url.trim()) {
+			setCapabilities(null);
+			setLayers([]);
+			setSelectedLayers([]);
+			setCapabilitiesError('');
+			return;
+		}
 		let active = true;
 		const loadCapabilities = async () => {
 			try {
@@ -108,7 +116,7 @@ export function useWmtsCapabilities(
 		return () => {
 			active = false;
 		};
-	}, [apiKey, defaultLayerIds, preferredCrs, url]);
+	}, [apiKey, defaultLayerIds, enabled, preferredCrs, url]);
 
 	const selectedLayerTitle = useMemo(() => {
 		if (selectedLayers.length === 0) return 'WMTS';
