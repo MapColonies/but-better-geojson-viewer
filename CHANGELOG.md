@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/MapColonies/geojson-viewer/compare/v1.0.0...v1.0.1) (2026-04-11)
+
+
+### Bug Fixes
+
+* copy scripts before npm ci to prevent build failure ([#14](https://github.com/MapColonies/geojson-viewer/issues/14)) ([2e9b903](https://github.com/MapColonies/geojson-viewer/commit/2e9b90369d324d1b0a5e62250b8cf42b282dc22c))
+
 ## 1.0.0 (2026-04-11)
 
 
